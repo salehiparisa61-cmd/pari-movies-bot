@@ -62,15 +62,15 @@ jobs:
           MAX_RUNTIME_SECONDS: "20400"
         run: python rubika_bot.py
 
-      - name: ذخیرهٔ وضعیت (تا پیام‌های قدیمی دوباره جواب داده نشوند)
+      - name: ذخیرهٔ وضعیت (offset و آمار)
         if: always() && env.SKIP != '1'
         run: |
           git config user.name "pari-movies-bot"
           git config user.email "bot@users.noreply.github.com"
           touch .rubika_offset
-          git add -f .rubika_offset
+          git add -f .rubika_offset .bot_stats.json
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "ربات: به‌روزرسانی وضعیت آخرین پیام"
+          git commit -m "ربات: به‌روزرسانی وضعیت آخرین پیام و آمار"
           git push || echo "::warning::ذخیرهٔ وضعیت در ریپو ناموفق بود (فیلتر پیام قدیمی جایگزین آن است)"
