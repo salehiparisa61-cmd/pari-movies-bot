@@ -572,7 +572,6 @@ def main() -> None:
     if not token:
         print("خطا: RUBIKA_BOT_TOKEN در فایل .env تنظیم نشده است.", file=sys.stderr)
         sys.exit(1)
-    token = token
     api = RubikaAPI(token)
     offset: str | None = _load_offset()
     # روی هاست‌های موقت (مثل GitHub Actions) بعد از این مدت خودش تمیز خارج می‌شود
