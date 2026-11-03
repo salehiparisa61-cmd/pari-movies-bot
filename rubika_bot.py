@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 import requests
 
 import source
+import stats
 
 load_dotenv()
 
@@ -485,8 +486,15 @@ def handle_update(api: RubikaAPI, update: dict) -> None:
         send_join_prompt(api, chat_id)
         return
 
+    stats.track_user(sender_id)
+
     if text in ("/start", "/help"):
         api.send_message(chat_id, WELCOME, chat_rows=_home_keypad["rows"])
+        return
+
+    # آمار فقط برای مدیر (در چت خصوصی خودش با ربات)
+    if text in ("/stats", "آمار") and ADMIN_CHAT_ID and chat_id == ADMIN_CHAT_ID:
+        api.send_message(chat_id, stats.report_text(), chat_rows=_home_keypad["rows"])
         return
 
     if text == "/feedback" or _awaiting_feedback.pop(chat_id, False):
@@ -516,6 +524,7 @@ def handle_update(api: RubikaAPI, update: dict) -> None:
         send_movie(api, chat_id, link)
         return
 
+    stats.track_search()
     handle_search(api, chat_id, text)
 
 
@@ -563,6 +572,7 @@ def main() -> None:
     if not token:
         print("خطا: RUBIKA_BOT_TOKEN در فایل .env تنظیم نشده است.", file=sys.stderr)
         sys.exit(1)
+    token = token
     api = RubikaAPI(token)
     offset: str | None = _load_offset()
     # روی هاست‌های موقت (مثل GitHub Actions) بعد از این مدت خودش تمیز خارج می‌شود
@@ -590,6 +600,7 @@ def main() -> None:
         _save_offset(offset)
         time.sleep(POLL_INTERVAL)
     _drain(timeout=120)
+    stats.save(force=True)
     log.info("bot stopped")
 
 
