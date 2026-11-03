@@ -1,0 +1,74 @@
+name: rubika-bot
+
+# دربارهٔ این روش (مهم):
+# GitHub فقط ۶ ساعت برای هر Job اجازهٔ اجرا می‌دهد، پس ربات هر بار ~۵ ساعت و ۴۰ دقیقه
+# اجرا می‌شود و با کرونِ هر ۵ دقیقه، اجرای بعدی در صف می‌ماند و بلافاصله بعد از پایان
+# اجرای فعلی شروع می‌شود. نتیجه: ربات عملاً همیشه روشن است، ولی ممکن است بین دو اجرا
+# چند ثانیه تا چند دقیقه فاصله بیفتد (در آن فاصله پیام‌ها ذخیره می‌شوند و بعد جواب می‌گیرند).
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: rubika-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: نصب پیش‌نیازها
+        run: pip install -r requirements.txt
+
+      - name: ساخت فایل .env
+        run: |
+          {
+            printf 'RUBIKA_BOT_TOKEN=%s\n' '${{ secrets.RUBIKA_BOT_TOKEN }}'
+            printf 'RUBIKA_CHANNEL=%s\n' 'Pari_Movies'
+            printf 'ADMIN_CHAT_ID=%s\n' 'b0IimI80BNIx0f8113255707d3388b93'
+          } > .env
+          if ! grep -q 'RUBIKA_BOT_TOKEN=....' .env; then
+            echo "::error::Secret به نام RUBIKA_BOT_TOKEN در Settings → Secrets ساخته نشده است"
+            exit 1
+          fi
+
+      - name: تست دسترسی به روبیکا
+        run: |
+          set -a; . ./.env; set +a
+          python - <<'PY'
+          import os, requests
+          t = os.environ["RUBIKA_BOT_TOKEN"]
+          r = requests.post(f"https://botapi.rubika.ir/v3/{t}/getMe", timeout=30)
+          print("HTTP", r.status_code, r.text[:300])
+          r.raise_for_status()
+          if r.json().get("status") != "OK":
+              raise SystemExit("ربات به API روبیکا دسترسی ندارد")
+          PY
+
+      - name: اجرای ربات
+        env:
+          MAX_RUNTIME_SECONDS: "20400"
+        run: python rubika_bot.py
+
+      - name: ذخیرهٔ وضعیت (تا پیام‌های قدیمی دوباره جواب داده نشوند)
+        if: always()
+        run: |
+          git config user.name "pari-movies-bot"
+          git config user.email "bot@users.noreply.github.com"
+          touch .rubika_offset
+          git add -f .rubika_offset
+          git diff --cached --quiet && exit 0
+          git commit -m "ربات: به‌روزرسانی وضعیت آخرین پیام"
+          git push
