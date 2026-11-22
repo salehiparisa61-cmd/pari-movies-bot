@@ -65,10 +65,10 @@
   "2026-11-21": {
    "active": 2,
    "new_users": 1,
-   "searches": 2
+   "searches": 3
   }
  },
- "searches": 91,
+ "searches": 92,
  "started": "2026-11-04",
  "users": {
   "1605a834b6ba": {
@@ -108,8 +108,8 @@
   },
   "8163ac99f85d": {
    "first": 1793966533,
-   "last": 1795247002,
-   "n": 5
+   "last": 1795295771,
+   "n": 7
   },
   "846d67cca30a": {
    "first": 1794193500,
